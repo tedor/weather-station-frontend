@@ -12,9 +12,9 @@
             <h3 class="text-muted">Что сейчас?</h3>
         </div>
         <div class="col-md-10">
-            <h3>Температура: <strong>10°C</strong></h3>
-            <h4>Влажность: <strong>34.1%</strong></h4>
-            <h4>Давление: <strong>750 мм.рт.ст</strong></h4>
+            <h3>Температура: <strong id="temperature">...</strong></h3>
+            <h4>Влажность: <strong id="humidity">...</strong></h4>
+            <h4>Давление: <strong id="pressure">...</strong></h4>
         </div>
     </div>
 
@@ -43,7 +43,7 @@
         <div class="col-md-2">
         </div>
         <div class="col-md-10">
-            <h3>Давление:</h3>
+            <h3>Давление <small>(мм рт. ст.)</small>:</h3>
             <canvas id="weatherPressureChart"  height="200"></canvas>
         </div>
     </div>

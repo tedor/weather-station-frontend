@@ -1,78 +1,116 @@
-$(document).ready(function() {
-    showTemperatureChart = function(animation) {
-        // Temperature block
-        var dataTemperature = {
-            labels : ["January","February","March","April"],
+$.Weather = {
+    labels: [],
+    dataTemperature: [],
+    dataPressure: [],
+    dataHumidity: [],
+
+    init: function() {
+        this.getSummary();
+        this.getSummaryBy12Hours();
+        this.setChartsWidth();
+
+        $( window ).resize($.proxy(function() {
+            this.setChartsWidth();
+            this.renderData(false);
+        }, this));
+    },
+
+    getSummary: function() {
+        $.get('/api/get_summary', function(response) {
+            data = $.parseJSON(response);
+            if(data.content != "") {
+                content = $.parseJSON(data.content);
+
+                $('#temperature').text(Math.round(content.temperature) + '°C');
+                $('#humidity').text(Math.round(content.humidity) + '%');
+                $('#pressure').text(content.pressure + ' мм рт. ст.');
+            }
+        });
+    },
+
+    getSummaryBy12Hours: function() {
+        $.get('/api/get_summary_by_12hours', $.proxy(function(response) {
+            data = $.parseJSON(response);
+            if(data.content != "") {
+                content = $.parseJSON(data.content);
+
+                if(content.length > 0) {
+                    for(var key in content) {
+                        sensor = content[key];
+                        console.log(sensor.created_at);
+                        this.labels.push(sensor.created_at.substring(11,13) + ":00");
+                        this.dataTemperature.push(sensor.temperature);
+                        this.dataPressure.push(sensor.pressure);
+                        this.dataHumidity.push(sensor.humidity);
+                    }
+                    this.renderData(true);
+                }
+            }
+        }, this));
+    },
+
+    renderData: function(animation) {
+        this.renderGraph('weatherTemperaturChart', '<%=value%>°C', this.labels, this.dataTemperature, animation);
+        this.renderGraph('weatherHumidityChart', '<%=value%>%', this.labels, this.dataHumidity, animation);
+        this.renderGraph('weatherPressureChart', '<%=value%>', this.labels, this.dataPressure, animation);
+    },
+
+    renderGraph: function(id, labelText, labels, content, animation) {
+        var color = 'rgba(66, 139, 202, %alpha%)';
+        if(id == 'weatherTemperaturChart') {
+            color = 'rgba(217, 83, 79, %alpha%)';
+        } else if(id == 'weatherHumidityChart') {
+            color = 'rgba(66, 139, 202, %alpha%)';
+        } else if(id == 'weatherPressureChart') {
+            color = 'rgba(92, 184, 92, %alpha%)';
+        }
+
+        var data = {
+            labels : labels,
             datasets : [
                 {
-                    fillColor : "rgba(217, 83, 79, 0.5)",
-                    strokeColor : "rgba(217, 83, 79, 1)",
-                    pointColor : "rgba(217, 83, 79, 1)",
+                    fillColor : color.replace('%alpha%', '0.5'),
+                    strokeColor : color.replace('%alpha%', '1'),
+                    pointColor : color.replace('%alpha%', '1'),
                     pointStrokeColor : "#fff",
-                    data : [20,22,17,7,0,-2,-4]
+                    data : content
                 }
             ]
         }
-        var optionsTemperature = {scaleLabel: '<%=value%>°C', animation: animation};
-        var ctxTemperature = document.getElementById("weatherTemperaturChart").getContext("2d");
-        new Chart(ctxTemperature).Line(dataTemperature, optionsTemperature);
-    }
 
-    showHumidityChart = function(animation) {
-        // Humidity block
-        var dataHumidity = {
-            labels : ["01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00"],
-            datasets : [
-                {
-                    fillColor : "rgba(66, 139, 202, 0.5)",
-                    strokeColor : "rgba(66, 139, 202, 1)",
-                    pointColor : "rgba(66, 139, 202, 1)",
-                    pointStrokeColor : "#fff",
-                    data : [65,59,90,81,56,55,40]
-                }
-            ]
-        }
-        var optionsHumidity = {scaleLabel: '<%=value%>°C', animation: animation};
-        var ctxHumidity = document.getElementById("weatherHumidityChart").getContext("2d");
-        new Chart(ctxHumidity).Line(dataHumidity, optionsHumidity);
-    }
+        var options = {
+            scaleLabel: labelText,
+            animation: animation
+        };
+        var axisFix = this.wholeNumberAxisFix(data);
+//        $.extend(options, axisFix);
+        var ctx = document.getElementById(id).getContext("2d");
+        new Chart(ctx).Line(data, options);
+    },
 
-    showPressureChart = function(animation) {
-        // Pressure block
-        var dataPressure = {
-            labels : ["January","February","March","April","May","June","July"],
-            datasets : [
-                {
-                    fillColor : "rgba(92, 184, 92, 0.5)",
-                    strokeColor : "rgba(92, 184, 92, 1)",
-                    pointColor : "rgba(92, 184, 92, 1)",
-                    pointStrokeColor : "#fff",
-                    data : [28,48,40,19,96,27,100]
-                }
-            ]
-        }
-        var optionsPressure = {scaleLabel: '<%=value%>°C', animation: animation};
-        var ctxPressure = document.getElementById("weatherPressureChart").getContext("2d");
-        var pressureChart = new Chart(ctxPressure).Line(dataPressure, optionsPressure);
-    }
-
-    setChartsWidth = function() {
+    setChartsWidth: function() {
         $('#weatherTemperaturChart').attr('width', $('#weatherTemperaturChart').closest('div').width());
         $('#weatherHumidityChart').attr('width', $('#weatherHumidityChart').closest('div').width());
         $('#weatherPressureChart').attr('width', $('#weatherPressureChart').closest('div').width());
+    },
+
+    wholeNumberAxisFix: function(data) {
+       var maxValue = false;
+       for (datasetIndex = 0; datasetIndex < data.datasets.length; ++datasetIndex) {
+           var setMax = Math.max.apply(null, data.datasets[datasetIndex].data);
+           if (maxValue === false || setMax > maxValue) maxValue = setMax;
+       }
+
+       var steps = new Number(maxValue);
+       var stepWidth = new Number(1);
+       if (maxValue > 10) {
+           stepWidth = Math.floor(maxValue / 10);
+           steps = Math.ceil(maxValue / stepWidth);
+       }
+       return { scaleOverride: true, scaleSteps: steps, scaleStepWidth: stepWidth, scaleStartValue: 0 };
     }
+};
 
-    initCharts = function(animation) {
-        showTemperatureChart(animation);
-        showHumidityChart(animation);
-        showPressureChart(animation);
-    }
-
-    setChartsWidth();
-    initCharts(true);
-
-    $( window ).resize(function() {
-        setChartsWidth();
-        initCharts(false);
-    });
+$(document).ready(function() {
+    $.Weather.init();
 });
