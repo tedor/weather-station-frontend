@@ -89,9 +89,9 @@ $.Weather = {
     },
 
     setChartsWidth: function() {
-        $('#weatherTemperaturChart').attr('width', $('#weatherTemperaturChart').closest('div').width());
-        $('#weatherHumidityChart').attr('width', $('#weatherHumidityChart').closest('div').width());
-        $('#weatherPressureChart').attr('width', $('#weatherPressureChart').closest('div').width());
+        $('#weatherTemperaturChart').attr('width', $('#weatherTemperaturChart').closest('div').width()).attr('height', 200);
+        $('#weatherHumidityChart').attr('width', $('#weatherHumidityChart').closest('div').width()).attr('height', 200);
+        $('#weatherPressureChart').attr('width', $('#weatherPressureChart').closest('div').width()).attr('height', 200);
     },
 
     wholeNumberAxisFix: function(data) {
