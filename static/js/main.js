@@ -3,8 +3,10 @@ $.Weather = {
     dataTemperature: [],
     dataPressure: [],
     dataHumidity: [],
+    timeZoneOffsetHours: 0,
 
     init: function() {
+        this.getTimeOffset();
         this.getSummary();
         this.getSummaryBy12Hours();
         this.setChartsWidth();
@@ -13,6 +15,11 @@ $.Weather = {
             this.setChartsWidth();
             this.renderData(false);
         }, this));
+    },
+
+    getTimeOffset: function() {
+        var date = new Date()
+        this.timeZoneOffsetHours = (date.getTimezoneOffset()*-1)/60;
     },
 
     getSummary: function() {
@@ -38,7 +45,9 @@ $.Weather = {
                     for(var key in content) {
                         sensor = content[key];
                         console.log(sensor.created_at);
-                        this.labels.push(sensor.created_at.substring(11,13) + ":00");
+                        var hour = parseInt(sensor.created_at.substring(11,13));
+                        hour += this.timeZoneOffsetHours;
+                        this.labels.push(hour + ":00");
                         this.dataTemperature.push(sensor.temperature);
                         this.dataPressure.push(sensor.pressure);
                         this.dataHumidity.push(sensor.humidity);
