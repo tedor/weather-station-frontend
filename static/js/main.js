@@ -47,6 +47,9 @@ $.Weather = {
                         console.log(sensor.created_at);
                         var hour = parseInt(sensor.created_at.substring(11,13));
                         hour += this.timeZoneOffsetHours;
+                        if(hour > 24) {
+                            hour -= 24;
+                        }
                         this.labels.push(hour + ":00");
                         this.dataTemperature.push(sensor.temperature);
                         this.dataPressure.push(sensor.pressure);
