@@ -9,10 +9,8 @@ $.Weather = {
         this.getTimeOffset();
         this.getSummary();
         this.getSummaryBy12Hours();
-        this.setChartsWidth();
 
         $( window ).resize($.proxy(function() {
-            this.setChartsWidth();
             this.renderData(false);
         }, this));
     },
@@ -62,64 +60,126 @@ $.Weather = {
     },
 
     renderData: function(animation) {
-        this.renderGraph('weatherTemperaturChart', '<%=value%>°C', this.labels, this.dataTemperature, animation);
-        this.renderGraph('weatherHumidityChart', '<%=value%>%', this.labels, this.dataHumidity, animation);
-        this.renderGraph('weatherPressureChart', '<%=value%>', this.labels, this.dataPressure, animation);
+        this.renderGraph('weatherTemperaturChart', 'Температура', this.labels, this.dataTemperature, animation);
+        this.renderGraph('weatherHumidityChart', 'Влажность', this.labels, this.dataHumidity, animation);
+        this.renderGraph('weatherPressureChart', 'Давление', this.labels, this.dataPressure, animation);
     },
 
     renderGraph: function(id, labelText, labels, content, animation) {
-        var color = 'rgba(66, 139, 202, %alpha%)';
-        if(id == 'weatherTemperaturChart') {
-            color = 'rgba(217, 83, 79, %alpha%)';
-        } else if(id == 'weatherHumidityChart') {
-            color = 'rgba(66, 139, 202, %alpha%)';
-        } else if(id == 'weatherPressureChart') {
-            color = 'rgba(92, 184, 92, %alpha%)';
-        }
-
-        var data = {
-            labels : labels,
-            datasets : [
-                {
-                    fillColor : color.replace('%alpha%', '0.5'),
-                    strokeColor : color.replace('%alpha%', '1'),
-                    pointColor : color.replace('%alpha%', '1'),
-                    pointStrokeColor : "#fff",
-                    data : content
-                }
-            ]
-        }
-
-        var options = {
-            scaleLabel: labelText,
-            animation: animation
+        $areaspline =  {
+            fillOpacity: 0.3,
+            color: '#D9534F',
+            negativeColor: '#428BCA'
         };
-        var axisFix = this.wholeNumberAxisFix(data);
-//        $.extend(options, axisFix);
-        var ctx = document.getElementById(id).getContext("2d");
-        new Chart(ctx).Line(data, options);
+        $labelSymbol = '';
+        $yAxis = {
+            gridLineColor: '#E6E6E6',
+            title: {
+                text: null
+            },
+            labels: {
+                formatter: function() {
+                    return this.value + $labelSymbol
+                }
+            }
+        };
+
+        if(id == 'weatherTemperaturChart') {
+            $areaspline =  {
+                fillOpacity: 0.5,
+                color: '#D9534F',
+                negativeColor: '#33CCFF'
+            };
+            $labelSymbol = '°C';
+            $yAxis.tickPixelInterval = 35;
+        } else if(id == 'weatherHumidityChart') {
+            $areaspline =  {
+                fillOpacity: 0.5,
+                color: '#428BCA'
+            };
+            $labelSymbol = '%';
+            $yAxis.tickInterval = 20;
+            $yAxis.min = 0;
+            $yAxis.max = 100;
+        } else if(id == 'weatherPressureChart') {
+            $areaspline =  {
+                fillOpacity: 0.5,
+                color: '#5CB85C'
+            };
+            $steps = this.wholeNumberAxis(content);
+            $yAxis.min = $steps.min-5;
+            $yAxis.max = $steps.max+5;
+
+        }
+
+        $('#' + id).highcharts({
+            chart: {
+                type: 'areaspline',
+                height: 175
+            },
+            plotOptions: {
+                areaspline: $areaspline,
+                series: {
+                    animation: animation
+                }
+            },
+            tooltip: {
+                crosshairs: {
+                    width: 1,
+                    color: '#E6E6E6'
+                },
+                shared: true,
+                headerFormat: 'Время: {point.key}<br />',
+                pointFormat: '{series.name}: {point.y}' + $labelSymbol
+            },
+            legend: {
+                enabled: false
+            },
+            title: {
+                text: null
+            },
+            xAxis: {
+                min: 0.5,
+                max: labels.length - 1.5,
+                labels: {
+                    y: 20
+                },
+                tickmarkPlacement: 'on',
+                gridLineColor: '#f3f3f3',
+                categories: labels
+            },
+            yAxis: $yAxis,
+            credits: {
+                enabled: false
+            },
+            series: [{
+                name: labelText,
+                data: content
+            }]
+        });
+
+
     },
 
-    setChartsWidth: function() {
-        $('#weatherTemperaturChart').attr('width', $('#weatherTemperaturChart').closest('div').width()).attr('height', 200);
-        $('#weatherHumidityChart').attr('width', $('#weatherHumidityChart').closest('div').width()).attr('height', 200);
-        $('#weatherPressureChart').attr('width', $('#weatherPressureChart').closest('div').width()).attr('height', 200);
-    },
-
-    wholeNumberAxisFix: function(data) {
-       var maxValue = false;
-       for (datasetIndex = 0; datasetIndex < data.datasets.length; ++datasetIndex) {
-           var setMax = Math.max.apply(null, data.datasets[datasetIndex].data);
-           if (maxValue === false || setMax > maxValue) maxValue = setMax;
+    wholeNumberAxis: function(data) {
+        var maxValue = null;
+        var minValue = null;
+       for (i = 0; i < data.length; ++i) {
+           if(maxValue == null) {
+               maxValue = data[i];
+           }
+           if(minValue == null) {
+               minValue = data[i];
+           }
+           if(data[i] > maxValue) {
+               maxValue = data[i];
+           }
+           if(data[i] < minValue) {
+               minValue = data[i];
+           }
        }
 
-       var steps = new Number(maxValue);
-       var stepWidth = new Number(1);
-       if (maxValue > 10) {
-           stepWidth = Math.floor(maxValue / 10);
-           steps = Math.ceil(maxValue / stepWidth);
-       }
-       return { scaleOverride: true, scaleSteps: steps, scaleStepWidth: stepWidth, scaleStartValue: 0 };
+        return {min: minValue, max: maxValue};
     }
 };
 
